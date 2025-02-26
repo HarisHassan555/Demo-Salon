@@ -8,6 +8,7 @@ import Services from './sections/Services'
 import BookingCTA from './sections/BookingCTA'
 import BookingPage from './pages/BookingPage'
 import Footer from './components/Footer'
+import AdminPage from './pages/AdminPage'
 
 const HomePage = () => (
   <main>
@@ -28,6 +29,7 @@ const AnimatedRoutes = () => {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<HomePage />} />
         <Route path="/booking" element={<BookingPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </AnimatePresence>
   )
@@ -36,10 +38,11 @@ const AnimatedRoutes = () => {
 const AppContent = () => {
   const location = useLocation()
   const isBookingPage = location.pathname === '/booking'
+  const isAdminPage = location.pathname === '/admin'
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      {!isBookingPage && <Navbar />}
+      {!isBookingPage && !isAdminPage && <Navbar />}
       <AnimatedRoutes />
     </div>
   )
