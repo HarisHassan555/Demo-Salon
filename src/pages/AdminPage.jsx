@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { collection, query, where, getDocs } from 'firebase/firestore'
-import { db } from '../firebase/config'
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { db, auth } from '../firebase/config'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 
@@ -9,15 +10,23 @@ const AdminLogin = ({ onLogin }) => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Simple authentication - in production use Firebase Auth
-    if (email === 'admin@luxehair.com' && password === 'admin123') {
-      onLogin(true)
-      localStorage.setItem('adminAuthenticated', 'true')
-    } else {
-      setError('Invalid credentials')
+    setLoading(true)
+    setError('')
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      if (userCredential.user) {
+        onLogin(true)
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('Invalid email or password')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -59,9 +68,11 @@ const AdminLogin = ({ onLogin }) => {
           </div>
           <button
             type="submit"
-            className="w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800"
+            disabled={loading}
+            className="w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 
+                     disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            Login
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
       </div>
@@ -99,7 +110,7 @@ const AppointmentList = ({ appointments }) => {
   )
 }
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ onLogout }) => {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(false)
@@ -138,7 +149,15 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-neutral-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-serif mb-8 text-center">Appointment Dashboard</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-serif text-center">Appointment Dashboard</h1>
+          <button
+            onClick={onLogout}
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+          >
+            Logout
+          </button>
+        </div>
         <div className="flex flex-col md:flex-row justify-between gap-8 md:gap-16 md:items-center min-h-[calc(100vh-160px)]">
           {/* Calendar Section */}
           <div className="md:w-3/5 lg:w-[48%]">
@@ -178,17 +197,29 @@ const AdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    const adminAuth = localStorage.getItem('adminAuthenticated')
-    if (adminAuth === 'true') {
-      setIsAuthenticated(true)
-    }
+    // Listen for auth state changes
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsAuthenticated(!!user)
+    })
+
+    // Cleanup subscription
+    return () => unsubscribe()
   }, [])
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      setIsAuthenticated(false)
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
 
   if (!isAuthenticated) {
     return <AdminLogin onLogin={setIsAuthenticated} />
   }
 
-  return <AdminDashboard />
+  return <AdminDashboard onLogout={handleLogout} />
 }
 
 export default AdminPage 

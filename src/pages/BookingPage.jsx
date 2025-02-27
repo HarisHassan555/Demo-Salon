@@ -96,6 +96,11 @@ const pageVariants = {
   }
 }
 
+const validatePhone = (phone) => {
+  const phoneRegex = /^[0-9]{11}$/
+  return phoneRegex.test(phone)
+}
+
 const BookingPage = () => {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
@@ -354,12 +359,26 @@ const BookingPage = () => {
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => updateFormData('phone', e.target.value)}
+                  onChange={(e) => {
+                    // Only allow numbers
+                    const value = e.target.value.replace(/[^0-9]/g, '')
+                    // Limit to 11 digits
+                    if (value.length <= 11) {
+                      updateFormData('phone', value)
+                    }
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 
                            focus:ring-gray-900 focus:border-transparent"
-                  placeholder="Enter your phone number"
+                  placeholder="Enter 11 digit phone number"
+                  pattern="[0-9]{11}"
+                  maxLength="11"
                   required
                 />
+                {formData.phone && !validatePhone(formData.phone) && (
+                  <p className="text-red-500 text-sm mt-1">
+                    Please enter a valid 11-digit phone number
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -447,7 +466,11 @@ const BookingPage = () => {
               ) : (
                 <button
                   type="submit"
-                  disabled={!formData.name || !formData.email || !formData.phone}
+                  disabled={
+                    !formData.name || 
+                    !formData.email || 
+                    !validatePhone(formData.phone)
+                  }
                   className="ml-auto px-6 py-2 bg-gray-900 text-white rounded-lg 
                            hover:bg-gray-800 transition-colors duration-300 
                            disabled:bg-gray-300 disabled:cursor-not-allowed"
